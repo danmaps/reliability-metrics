@@ -1,0 +1,31 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.sce.reliabilityapp
+productName: Reliability Metrics Map
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: build/app-icon.ico
+  artifactName: ${productName}-${version}.${ext}
+  signingHashAlgorithms: null
+  signDlls: false
+forceCodeSigning: false
+mac:
+  target: dmg
+  icon: build/icon.icns
+linux:
+  target: AppImage
+  icon: build/icon.png
+files:
+  - filter:
+      - src/**/*
+      - electron.js
+      - package.json
+asar: true
+asarUnpack: []
+electronDownload:
+  cache: ./electron-cache
+electronVersion: 27.3.11

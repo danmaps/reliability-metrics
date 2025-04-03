@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Reliability Metrics Map</title>
+    
+    <link rel="icon" href="../assets/icons/app-icon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="../assets/icons/app-icon.ico" type="image/x-icon">
+    
+    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/dark/main.css">
+    
+    <!-- Add CSS for error display -->
+    <style>
+        html, body {
+            padding: 0;
+            margin: 0;
+            height: 100%;
+            width: 100%;
+            font-family: Arial, Helvetica, sans-serif;
+            overflow: hidden;
+            background-color: #242424;
+            color: #ffffff;
+        }
+
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: #242424;
+            padding: 5px 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        #viewDiv {
+            position: absolute;
+            top: 40px;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .esri-select {
+            width: 100%;
+            margin-bottom: 8px;
+            padding: 4px;
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #666;
+        }
+
+        #userMessage {
+            margin: 0;
+            margin-left: auto;
+            color: #ffffff;
+        }
+
+        button {
+            background-color: #404040;
+            color: #ffffff;
+            border: 1px solid #666;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #505050;
+        }
+
+        /* Error display */
+        #errorContainer {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(220, 53, 69, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            max-width: 80%;
+        }
+        #errorDetails {
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+    </style>
+    
+    <script>
+        // Show errors in UI for easier debugging
+        window.addEventListener('error', function(event) {
+            console.error('Error:', event.error);
+            
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorDetails = document.getElementById('errorDetails');
+            
+            if (errorContainer && errorMessage && errorDetails) {
+                errorMessage.textContent = event.message || 'Application Error';
+                errorDetails.textContent = event.error ? (event.error.stack || event.error.toString()) : 'No details available';
+                errorContainer.style.display = 'block';
+            }
+        });
+        
+        // Listen for OAuth callback messages from the callback page
+        window.addEventListener("message", function(event) {
+            console.log("Received message event:", event.origin);
+            if (event.data && event.data.type === "arcgis:auth:hash") {
+                console.log("Received OAuth callback with hash");
+                // Handle the OAuth callback manually
+                require(["esri/identity/IdentityManager"], function(IdentityManager) {
+                    try {
+                        IdentityManager.completeOAuth2(event.data.hash);
+                    } catch (e) {
+                        console.error("Error completing OAuth:", e);
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <script src="https://js.arcgis.com/4.28/"></script>
+</head>
+
+<body>
+    <div id="header">
+        <button id="loginArcGISBtn" style="display:none;">Login with ArcGIS Online</button>
+        <button id="logoutBtn" style="display:none;">Logout</button>
+        <p id="userMessage">Not logged in</p>
+    </div>
+    
+    <div id="viewDiv"></div>
+    
+    <!-- Error display container -->
+    <div id="errorContainer">
+        <h3 id="errorMessage">Application Error</h3>
+        <div id="errorDetails"></div>
+        <button onclick="document.getElementById('errorContainer').style.display='none';">Dismiss</button>
+    </div>
+    
+    <script src="rel.js"></script>
+</body>
+</html>

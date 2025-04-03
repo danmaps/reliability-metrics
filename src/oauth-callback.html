@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS OAuth Callback</title>
+  <script>
+    // This page handles the OAuth callback and communicates back to the main application
+    function processOAuthResponse() {
+      // Get the hash fragment from the URL
+      var hash = window.location.hash;
+      
+      // Post the hash to the parent window
+      if (window.opener) {
+        // For popup approach
+        window.opener.postMessage({
+          type: "arcgis:auth:hash",
+          hash: hash
+        }, "*");
+        window.close();
+      } else {
+        // For redirect approach (no popup)
+        window.parent.postMessage({
+          type: "arcgis:auth:hash", 
+          hash: hash
+        }, "*");
+        
+        // Redirect back to the main application
+        try {
+          window.location.href = window.location.origin + window.location.pathname.replace("oauth-callback.html", "index.html");
+        } catch (e) {
+          console.error("Error redirecting:", e);
+        }
+      }
+    }
+    
+    // Execute when the page loads
+    window.addEventListener('DOMContentLoaded', processOAuthResponse);
+  </script>
+</head>
+<body>
+  <p>Processing authentication, please wait...</p>
+</body>
+</html>
