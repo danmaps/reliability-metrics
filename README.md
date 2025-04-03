@@ -2,6 +2,8 @@
 
 This web application displays reliability metrics for electrical circuits using ArcGIS JavaScript API.
 
+**Live Version:** [https://reliability-metrics.netlify.app/#](https://reliability-metrics.netlify.app/#)
+
 ## Overview
 
 The Reliability Metrics Application is a web-based tool that visualizes reliability metrics data for electrical circuits. It uses ArcGIS Online feature services to display spatial data on a map, allowing users to analyze reliability metrics for different circuits, districts, and regions.
@@ -19,7 +21,7 @@ The Reliability Metrics Application is a web-based tool that visualizes reliabil
 
 ## Running the Application
 
-There are two ways to run the application:
+There are two ways to run the application locally:
 
 ### Method 1: Local Development
 
@@ -34,10 +36,6 @@ There are two ways to run the application:
    - Node.js: Install `http-server` using `npm install -g http-server` and run `http-server` from the `reliability_app` directory
 2. Open your browser and navigate to `http://localhost:8000/src/` (or the appropriate port number)
 
-### Method 3: Deploy to a Web Server
-
-For production use, deploy the contents of this directory to a web server or host using ArcGIS Online.
-
 ## Authentication
 
 The application requires authentication with ArcGIS Online:
@@ -45,15 +43,6 @@ The application requires authentication with ArcGIS Online:
 1. Click the "Login with ArcGIS Online" button when prompted.
 2. Enter your ArcGIS Online organizational credentials.
 3. If you remain logged in to ArcGIS Online in your browser, you may be authenticated automatically.
-
-## Data Updates
-
-The reliability metrics data is updated through the associated Python scripts:
-
-- `sas_script.py` - Extracts data from SAS and saves it to the `data_processing` directory as CSV files
-- `arcgis_script.py` or `arcgis_script_no_arcpy.py` - Updates the ArcGIS Online feature services with the latest data
-
-After running these scripts, the app will display the updated information on the next refresh.
 
 ## Troubleshooting
 
