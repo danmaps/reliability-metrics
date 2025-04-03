@@ -5,8 +5,8 @@
     <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Reliability Metrics Map</title>
     
-    <link rel="icon" href="assets/icons/app-icon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="assets/icons/app-icon.ico" type="image/x-icon">
+    <link rel="icon" href="../assets/icons/app-icon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="../assets/icons/app-icon.ico" type="image/x-icon">
     
     <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/dark/main.css">
     
@@ -218,13 +218,6 @@
         });
     </script>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Ensure rel.js logic executes after DOM is fully loaded
-            const script = document.createElement('script');
-            script.src = 'rel.js';
-            document.body.appendChild(script);
-        });
-    </script>
+    <script src="rel.js"></script>
 </body>
 </html>
