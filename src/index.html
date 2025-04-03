@@ -96,6 +96,22 @@
             margin-top: 10px;
             font-family: monospace;
         }
+
+        /* Help popup styles */
+        #helpPopup {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 123, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            max-width: 80%;
+            color: #ffffff;
+            text-align: center;
+        }
     </style>
     
     <script>
@@ -139,9 +155,24 @@
         <button id="loginArcGISBtn" style="display:none;">Login with ArcGIS Online</button>
         <button id="logoutBtn" style="display:none;">Logout</button>
         <p id="userMessage">Not logged in</p>
+        <button id="helpBtn">Help</button>
     </div>
     
     <div id="viewDiv"></div>
+    
+    <!-- Help popup -->
+    <div id="helpPopup">
+        <h3>Need Help?</h3>
+        <p>If you have any questions about this app, please contact:</p>
+        <p>
+            <strong>
+                <a href="mailto:daniel.mcvey@sce.com?subject=Reliability%20Metrics%20App%20Help" style="color: #ffffff; text-decoration: underline;">
+                    daniel.mcvey@sce.com
+                </a>
+            </strong>
+        </p>
+        <button onclick="document.getElementById('helpPopup').style.display='none';">Close</button>
+    </div>
     
     <!-- Error display container -->
     <div id="errorContainer">
@@ -150,6 +181,50 @@
         <button onclick="document.getElementById('errorContainer').style.display='none';">Dismiss</button>
     </div>
     
-    <script src="rel.js"></script>
+    <script>
+        // Show errors in UI for easier debugging
+        window.addEventListener('error', function(event) {
+            console.error('Error:', event.error);
+            
+            const errorContainer = document.getElementById('errorContainer');
+            const errorMessage = document.getElementById('errorMessage');
+            const errorDetails = document.getElementById('errorDetails');
+            
+            if (errorContainer && errorMessage && errorDetails) {
+                errorMessage.textContent = event.message || 'Application Error';
+                errorDetails.textContent = event.error ? (event.error.stack || event.error.toString()) : 'No details available';
+                errorContainer.style.display = 'block';
+            }
+        });
+        
+        // Listen for OAuth callback messages from the callback page
+        window.addEventListener("message", function(event) {
+            console.log("Received message event:", event.origin);
+            if (event.data && event.data.type === "arcgis:auth:hash") {
+                console.log("Received OAuth callback with hash");
+                // Handle the OAuth callback manually
+                require(["esri/identity/IdentityManager"], function(IdentityManager) {
+                    try {
+                        IdentityManager.completeOAuth2(event.data.hash);
+                    } catch (e) {
+                        console.error("Error completing OAuth:", e);
+                    }
+                });
+            }
+        });
+
+        document.getElementById('helpBtn').addEventListener('click', function() {
+            document.getElementById('helpPopup').style.display = 'block';
+        });
+    </script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Ensure rel.js logic executes after DOM is fully loaded
+            const script = document.createElement('script');
+            script.src = 'rel.js';
+            document.body.appendChild(script);
+        });
+    </script>
 </body>
 </html>
