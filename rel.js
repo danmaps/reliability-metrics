@@ -442,9 +442,10 @@ require([
       });
       view.ui.add(legendExpand, "bottom-right");
       
-      // Update the search widget configuration
+      // Configure the search widget to make the circuits layer the only searchable source
       const searchWidget = new Search({
         view: view,
+        includeDefaultSources: false, // Disable default locators
         sources: [
           {
             layer: view.map.allLayers.find(layer => layer.title === "Reliability_Dissolve_Lines"),
@@ -454,16 +455,6 @@ require([
             outFields: ["*"],
             name: "Circuits",
             placeholder: "Search for a circuit by name",
-            maxResults: 6,
-            maxSuggestions: 6,
-            suggestionsEnabled: true,
-            minSuggestCharacters: 3
-          },
-          {
-            url: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer",
-            singleLineFieldName: "SingleLine",
-            name: "Esri World Geocoding Service",
-            placeholder: "Search for an address",
             maxResults: 6,
             maxSuggestions: 6,
             suggestionsEnabled: true,
@@ -1299,10 +1290,9 @@ require([
       try {
         // Create a query to get all unique values
         const query = layer.createQuery();
-        query.outFields = [fieldName];
-        query.returnDistinctValues = true;
-        query.orderByFields = [fieldName];
-        query.where = `${fieldName} IS NOT NULL`; // Only get non-null values
+        query.outFields = [fieldName]; // Queries the specified field (e.g., "COUNTY")
+        query.returnDistinctValues = true; // Ensures only unique values are returned
+        query.where = `${fieldName} IS NOT NULL`; // Filters out null values
         query.returnGeometry = false; // Don't need geometry, just attributes
         query.outStatistics = null; // Make sure no statistics are applied
         
@@ -1320,12 +1310,12 @@ require([
           
           // Process features and add unique values to the dropdown
           results.features.forEach(feature => {
-            const value = feature.attributes[fieldName];
+            const value = feature.attributes[fieldName]; // Gets the value of the "COUNTY" field
             if (value && !uniqueValues.has(value)) {
               uniqueValues.add(value);
               const option = document.createElement("option");
               option.value = value;
-              option.text = value;
+              option.text = value; // Adds the value to the dropdown
               select.appendChild(option);
             }
           });
