@@ -243,8 +243,7 @@ require([
               console.warn(`Failed to load layer "${layer.title}": ${error.message}`);
               return layer; // Return layer anyway to continue with other layers
             });
-          }))
-          .then(() => {
+          })).then(() => {
             console.log("All feature layers loaded or attempted to load");
             
             // Find a suitable layer for filtering (one with the required fields)
@@ -443,10 +442,38 @@ require([
       });
       view.ui.add(legendExpand, "bottom-right");
       
-      // Add search widget
-      const searchWidget = new Search({ view: view });
+      // Update the search widget configuration
+      const searchWidget = new Search({
+        view: view,
+        sources: [
+          {
+            layer: view.map.allLayers.find(layer => layer.title === "Reliability_Dissolve_Lines"),
+            searchFields: ["CIRCUIT_NAME"],
+            displayField: "CIRCUIT_NAME",
+            exactMatch: false,
+            outFields: ["*"],
+            name: "Circuits",
+            placeholder: "Search for a circuit by name",
+            maxResults: 6,
+            maxSuggestions: 6,
+            suggestionsEnabled: true,
+            minSuggestCharacters: 3
+          },
+          {
+            url: "https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer",
+            singleLineFieldName: "SingleLine",
+            name: "Esri World Geocoding Service",
+            placeholder: "Search for an address",
+            maxResults: 6,
+            maxSuggestions: 6,
+            suggestionsEnabled: true,
+            minSuggestCharacters: 3
+          }
+        ]
+      });
+
       view.ui.add(searchWidget, "top-left");
-      
+
       // Add filter widget if there's a suitable layer for filtering
       if (filterLayer) {
         const filterExpand = new Expand({
