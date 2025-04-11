@@ -99,12 +99,23 @@ require([
       });
   }
 
+  // Automatically execute login functionality if the user is not logged in
+  IdentityManager.checkSignInStatus(info.portalUrl + "/sharing/rest")
+    .then((credential) => {
+      loadMap();
+    })
+    .catch(() => {
+      IdentityManager.getCredential(info.portalUrl + "/sharing/rest")
+        .then(() => {
+          loadMap();
+        });
+    });
+
   function loadMap() {
     const webmap = new WebMap({
       portalItem: {
-        id: "ca1b6e04830d492a8e8a8628d77c63c5" // Replace with your web map ID
-      },
-      basemap: "dark-gray-vector" // Set the basemap to dark canvas
+        id: "ca1b6e04830d492a8e8a8628d77c63c5" // web map ID
+      }
     });
 
     const view = new MapView({
@@ -497,13 +508,13 @@ require([
         mode: "floating"
       });
 
-      view.ui.add(helpExpand, {
-        position: "top-right",
-        index: 0 // Move above the print and layerlist widgets
-      });
-
       // Add expand widgets to view
       view.ui.add([
+        {
+          component: helpExpand,
+          position: "top-right",
+          index: 0
+        },
         {
           component: printExpand,
           position: "top-right",
@@ -828,6 +839,47 @@ require([
   
       filterDiv.innerHTML = html;
       
+      // Ensure the filter UI is properly initialized before accessing elements
+      const initializeFilterUI = () => {
+        const filterDiv = document.getElementById("filterDiv");
+        if (!filterDiv) {
+          console.error("Filter UI container not found in the DOM.");
+          return;
+        }
+
+        // Create the filter-layers-header element if it doesn't exist
+        let filterLayersHeader = document.getElementById("filter-layers-header");
+        if (!filterLayersHeader) {
+          filterLayersHeader = document.createElement("div");
+          filterLayersHeader.id = "filter-layers-header";
+          filterLayersHeader.className = "filter-layers-header";
+          filterLayersHeader.innerHTML = `<span>Apply filters to</span><span id="filter-layers-arrow">▼</span>`;
+          filterDiv.appendChild(filterLayersHeader);
+        }
+
+        // Create the filter-layers-section element if it doesn't exist
+        let filterLayersSection = document.getElementById("filter-layers-section");
+        if (!filterLayersSection) {
+          filterLayersSection = document.createElement("div");
+          filterLayersSection.id = "filter-layers-section";
+          filterLayersSection.className = "filter-section";
+          filterLayersSection.style.display = "none";
+          filterDiv.appendChild(filterLayersSection);
+        }
+
+        // Add event listener to toggle the filter layers section
+        filterLayersHeader.addEventListener("click", () => {
+          const arrow = document.getElementById("filter-layers-arrow");
+          if (filterLayersSection && arrow) {
+            filterLayersSection.style.display = filterLayersSection.style.display === "none" ? "block" : "none";
+            arrow.textContent = filterLayersSection.style.display === "none" ? "▼" : "▲";
+          }
+        });
+      };
+
+      // Call the initialization function
+      initializeFilterUI();
+
       // Populate dropdowns and set up event listeners
       setTimeout(() => {
         try {
@@ -847,13 +899,20 @@ require([
             hasSubstationField
           };
 
-          // Set up the layers filter dropdown toggle
-          document.getElementById("filter-layers-header").addEventListener("click", () => {
-            const section = document.getElementById("filter-layers-section");
-            const arrow = document.getElementById("filter-layers-arrow");
-            section.style.display = section.style.display === "none" ? "block" : "none";
-            arrow.textContent = section.style.display === "none" ? "▼" : "▲";
-          });
+          // Ensure the element exists before adding an event listener
+          const filterLayersHeader = document.getElementById("filter-layers-header");
+          if (filterLayersHeader) {
+            filterLayersHeader.addEventListener("click", () => {
+              const section = document.getElementById("filter-layers-section");
+              const arrow = document.getElementById("filter-layers-arrow");
+              if (section && arrow) {
+                section.style.display = section.style.display === "none" ? "block" : "none";
+                arrow.textContent = section.style.display === "none" ? "▼" : "▲";
+              }
+            });
+          } else {
+            console.warn("Element with ID 'filter-layers-header' not found in the DOM.");
+          }
 
           // Populate dropdowns
           if (fields.hasRegionField && lineLayer) {
@@ -867,6 +926,9 @@ require([
           if (hasCityField) populateDropdown(filterLayer, "CITY", "city-select");
           if (hasSubstationField) populateDropdown(filterLayer, "SUBSTATION", "substation-select");
           
+          // Define layerCheckboxes to reference all checkboxes in the filter UI
+          const layerCheckboxes = document.querySelectorAll('.filter-layer-checkbox');
+
           // Set up event listeners for layer checkboxes
           layerCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
@@ -900,70 +962,51 @@ require([
     // Function to zoom to filtered features
     async function zoomToFilteredFeatures(view, layers) {
       try {
-        // Find the line layer for geometry
-        const lineLayer = layers.find(layer => 
-          layer.title === "Reliability_Dissolve_Lines" && shouldFilterLayer(layer)
-        );
-
-        // If no line layer, try to find any visible feature layer
-        let targetLayer = lineLayer;
-        if (!targetLayer) {
-          targetLayer = layers.find(layer => 
-            layer.visible && 
-            layer.type === "feature" && 
-            shouldFilterLayer(layer)
-          );
+        // Ensure the loadingIndicator element exists in the DOM
+        let loadingIndicator = document.getElementById("loadingIndicator");
+        if (!loadingIndicator) {
+          loadingIndicator = document.createElement("div");
+          loadingIndicator.id = "loadingIndicator";
+          loadingIndicator.style.display = "none";
+          loadingIndicator.style.position = "absolute";
+          loadingIndicator.style.top = "50%";
+          loadingIndicator.style.left = "50%";
+          loadingIndicator.style.transform = "translate(-50%, -50%)";
+          loadingIndicator.style.zIndex = "9999";
+          loadingIndicator.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+          loadingIndicator.style.color = "white";
+          loadingIndicator.style.padding = "10px";
+          loadingIndicator.style.borderRadius = "5px";
+          loadingIndicator.innerText = "Loading...";
+          document.body.appendChild(loadingIndicator);
         }
 
-        if (!targetLayer) {
-          console.warn("No suitable layer found for zooming to filtered features");
+        // Find the visible metrics layer for geometry
+        const visibleMetricLayer = layers.find(layer => 
+          layer.visible && 
+          layer.type === "feature" && 
+          shouldFilterLayer(layer)
+        );
+
+        if (!visibleMetricLayer) {
+          console.warn("No visible metrics layer found for zooming to filtered features");
           // Show a notification to the user
           showNotification(view, "No visible filtered layers found", "warning");
           return;
         }
 
-        // Show loading indicator
-        view.ui.add("loadingIndicator", "center");
-        document.getElementById("loadingIndicator").style.display = "flex";
+        console.log(`Querying features from visible layer: ${visibleMetricLayer.title}`);
 
-        console.log(`Querying features from layer: ${targetLayer.title}`);
-        
         // Create a query with the current definition expression
-        const query = targetLayer.createQuery();
-        query.where = targetLayer.definitionExpression || "1=1";
+        const query = visibleMetricLayer.createQuery();
+        query.where = visibleMetricLayer.definitionExpression || "1=1";
         query.returnGeometry = true;
         query.outSpatialReference = view.spatialReference;
-        
-        // Get features based on current filter
-        const featureSet = await targetLayer.queryFeatures(query);
-        
-        // Hide loading indicator
-        document.getElementById("loadingIndicator").style.display = "none";
-        view.ui.remove("loadingIndicator");
-        
-        if (featureSet.features.length === 0) {
-          console.log("No features match the current filters");
-          // Show a notification to the user
-          showNotification(view, "No features match the current filters", "warning");
-          return;
-        }
-        
-        console.log(`Found ${featureSet.features.length} features to zoom to`);
-        
-        // Create a combined extent from all features
-        let fullExtent = null;
-        
-        featureSet.features.forEach(feature => {
-          if (feature.geometry) {
-            if (fullExtent === null) {
-              fullExtent = feature.geometry.extent.clone();
-            } else {
-              fullExtent = fullExtent.union(feature.geometry.extent);
-            }
-          }
-        });
-        
-        if (fullExtent) {
+
+        // Use queryExtent to efficiently calculate the combined extent of visible features
+        const extentResult = await visibleMetricLayer.queryExtent(query);
+
+        if (extentResult.extent) {
           // Add padding to the extent (10%)
           const padding = {
             top: 50,
@@ -971,11 +1014,12 @@ require([
             bottom: 50,
             left: 50
           };
-          
+
           // Zoom to the extent with animation
-          view.goTo({ target: fullExtent, padding }, { duration: 1000 })
+          view.goTo({ target: extentResult.extent, padding }, { duration: 1000 })
             .then(() => {
-              showNotification(view, `Zoomed to ${featureSet.features.length} filtered features`, "info");
+              const featureCount = extentResult.count || 0;
+              showNotification(view, `Zoomed to ${featureCount} filtered features`, "info");
             })
             .catch(error => {
               console.error("Error zooming to features:", error);
