@@ -36,6 +36,10 @@ require([
   const isElectron = window && window.process && window.process.type;
   console.log("Running in environment:", isElectron ? "Electron" : "Browser");
 
+  // Show the welcome modal on launch
+  const welcomeModal = document.getElementById("welcomeModal");
+  const startButton = document.getElementById("startButton");
+
   // Get base URL for OAuth callback
   let callbackUrl;
   try {
@@ -75,66 +79,37 @@ require([
     }
   });
 
-  // Check if the user is already signed in
-  IdentityManager.checkSignInStatus(info.portalUrl + "/sharing/rest")
-    .then((credential) => {
-      document.getElementById("userMessage").innerText = `Welcome, ${credential.userId}`;
-      loadMap();
-    })
-    .catch(() => {
-      // User is not signed in, show login button and "Not logged in" message
-      document.getElementById("loginArcGISBtn").style.display = "inline";
-      document.getElementById("userMessage").innerText = "Not logged in";
-      document.getElementById("loginArcGISBtn").addEventListener("click", () => {
-        IdentityManager.getCredential(info.portalUrl + "/sharing/rest");
+  // Adjust modal behavior to replace login button functionality
+  if (welcomeModal && startButton) {
+    IdentityManager.checkSignInStatus(info.portalUrl + "/sharing/rest")
+      .then((credential) => {
+        welcomeModal.style.display = "none";
+        document.getElementById("userMessage").innerText = `Welcome, ${credential.userId}`;
+        loadMap();
+      })
+      .catch(() => {
+        welcomeModal.style.display = "flex";
+        startButton.addEventListener("click", () => {
+          IdentityManager.getCredential(info.portalUrl + "/sharing/rest")
+            .then(() => {
+              welcomeModal.style.display = "none";
+              loadMap();
+            });
+        });
       });
-    });
+  }
 
   function loadMap() {
-    // Show logout button and hide login button
-    document.getElementById("loginArcGISBtn").style.display = "none";
-    document.getElementById("logoutBtn").style.display = "inline";
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-      IdentityManager.destroyCredentials();
-      document.getElementById("userMessage").innerText = "Not logged in";
-      window.location.reload();
-    });
-
-    // Add loading indicator div
-    const loadingIndicator = document.createElement("div");
-    loadingIndicator.id = "loadingIndicator";
-    loadingIndicator.className = "esri-widget";
-    loadingIndicator.style.display = "none";
-    loadingIndicator.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
-    loadingIndicator.style.color = "white";
-    loadingIndicator.style.padding = "10px";
-    loadingIndicator.style.borderRadius = "4px";
-    loadingIndicator.style.alignItems = "center";
-    loadingIndicator.style.justifyContent = "center";
-    loadingIndicator.innerHTML = '<div style="display: flex; flex-direction: column; align-items: center;">' + 
-                                '<div class="esri-icon-loading-indicator" style="font-size: 24px; animation: esri-rotating 1.25s linear infinite;"></div>' +
-                                '<div style="margin-top: 10px;">Loading...</div></div>';
-    document.body.appendChild(loadingIndicator);
-
     const webmap = new WebMap({
       portalItem: {
-        id: "ca1b6e04830d492a8e8a8628d77c63c5"
-      }
+        id: "ca1b6e04830d492a8e8a8628d77c63c5" // Replace with your web map ID
+      },
+      basemap: "dark-gray-vector" // Set the basemap to dark canvas
     });
-    
+
     const view = new MapView({
       container: "viewDiv",
-      map: webmap,
-      ui: {
-        components: ["attribution"],
-        environment: {
-          lighting: {
-            type: "virtual",
-            directShadowsEnabled: true,
-            date: "sun-always-down"
-          }
-        }
-      }
+      map: webmap
     });
 
     // Global filter state
@@ -508,17 +483,36 @@ require([
         mode: "dark"
       });
 
+      const helpExpand = new Expand({
+        view: view,
+        content: `<div style='padding: 10px; background-color: rgba(0, 0, 0, 0.5); border-radius: 5px;'>
+                    <a href='mailto:daniel.mcvey@sce.com?subject=Reliability%20Metrics%20Map%20Help' style="color:rgb(209, 209, 209);text-decoration-line:none;"'>
+                      <button style='background-color: transparent; color: white; border: none; cursor: pointer; font-size: 16px;'>
+                        Help
+                      </button>
+                    </a>
+                  </div>`,
+        expandIconClass: "esri-icon-question",
+        expanded: false,
+        mode: "floating"
+      });
+
+      view.ui.add(helpExpand, {
+        position: "top-right",
+        index: 0 // Move above the print and layerlist widgets
+      });
+
       // Add expand widgets to view
       view.ui.add([
         {
           component: printExpand,
           position: "top-right",
-          index: 0
+          index: 1
         },
         {
           component: layerListExpand,
           position: "top-right",
-          index: 1
+          index: 2
         },
         {
           component: legendExpand,
@@ -874,7 +868,6 @@ require([
           if (hasSubstationField) populateDropdown(filterLayer, "SUBSTATION", "substation-select");
           
           // Set up event listeners for layer checkboxes
-          const layerCheckboxes = document.querySelectorAll('.filter-layer-checkbox');
           layerCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
               const layerTitle = e.target.dataset.layerTitle;

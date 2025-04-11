@@ -23,24 +23,9 @@
             color: #ffffff;
         }
 
-        #header {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: #242424;
-            padding: 5px 10px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            z-index: 100;
-        }
-
         #viewDiv {
             position: absolute;
-            top: 40px;
+            top: 0;
             bottom: 0;
             left: 0;
             right: 0;
@@ -53,12 +38,6 @@
             background-color: #404040;
             color: #ffffff;
             border: 1px solid #666;
-        }
-
-        #userMessage {
-            margin: 0;
-            margin-left: auto;
-            color: #ffffff;
         }
 
         button {
@@ -151,14 +130,34 @@
 </head>
 
 <body>
-    <div id="header">
-        <button id="loginArcGISBtn" style="display:none;">Login with ArcGIS Online</button>
-        <button id="logoutBtn" style="display:none;">Logout</button>
-        <p id="userMessage">Not logged in</p>
-        <button id="helpBtn">Help</button>
-    </div>
-    
     <div id="viewDiv"></div>
+    
+    <!-- Modal Window -->
+    <div id="welcomeModal" style="
+        display: flex;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        padding: 20px;
+        border-radius: 10px;
+        flex-direction: column;
+        align-items: center;
+        z-index: 2000;
+        color: white;
+    ">
+        <h2>Welcome to the Reliability Metrics Map</h2>
+        <button id="startButton" style="
+            background-color: #0079c1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        ">Get Started</button>
+    </div>
     
     <!-- Help popup -->
     <div id="helpPopup">
@@ -211,10 +210,6 @@
                     }
                 });
             }
-        });
-
-        document.getElementById('helpBtn').addEventListener('click', function() {
-            document.getElementById('helpPopup').style.display = 'block';
         });
     </script>
     
