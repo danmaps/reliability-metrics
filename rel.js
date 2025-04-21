@@ -949,6 +949,128 @@ require([
               zoomToFilteredFeatures(view, layers);
             });
           }
+
+          // Add optional range filter UI below the other filters
+          const rangeFilterContainer = document.createElement("div");
+          rangeFilterContainer.id = "rangeFilterContainer";
+          rangeFilterContainer.style.marginTop = "15px";
+          rangeFilterContainer.style.backgroundColor = "#333";
+          rangeFilterContainer.style.padding = "10px";
+          rangeFilterContainer.style.borderRadius = "4px";
+          rangeFilterContainer.innerHTML = `
+            <div id=\"range-metric-label\" style=\"color:#fff; margin-bottom:8px;\"></div>
+            <label for=\"range-slider-min\">Min:</label>
+            <input type=\"range\" id=\"range-slider-min\" class=\"esri-input\" style=\"width: 100%; margin-bottom: 8px;\" min=\"0\" max=\"100\" step=\"0.01\">
+            <label for=\"range-slider-max\">Max:</label>
+            <input type=\"range\" id=\"range-slider-max\" class=\"esri-input\" style=\"width: 100%; margin-bottom: 8px;\" min=\"0\" max=\"100\" step=\"0.01\">
+            <div style=\"display: flex; justify-content: space-between;\">
+              <span id=\"range-min-value\" style=\"color: #ffffff;\">0</span>
+              <span id=\"range-max-value\" style=\"color: #ffffff;\">100</span>
+            </div>
+          `;
+          filterDiv.appendChild(rangeFilterContainer);
+
+          // Helper to get the active metric field from visible sublayer
+          function getActiveMetricField() {
+            const metricGroupLayer = view.map.allLayers.find(l => l.title === "Reliability Metrics 2025");
+            if (!metricGroupLayer || !metricGroupLayer.layers) return null;
+            const active = metricGroupLayer.layers.find(l => l.visible);
+            return active ? getMetricFieldFromTitle(active.title) : null;
+          }
+
+          // Helper to update slider min/max based on current metric
+          async function updateRangeSliderUI() {
+            const metricField = getActiveMetricField();
+            const rangeMetricLabel = document.getElementById("range-metric-label");
+            if (!metricField) {
+              rangeMetricLabel.textContent = "No metric selected.";
+              return;
+            }
+            rangeMetricLabel.textContent = `Metric: ${metricField}`;
+            const lineLayer = view.map.allLayers.find(l => l.title === "Reliability_Dissolve_Lines");
+            if (!lineLayer) return;
+            // Query min/max
+            const query = lineLayer.createQuery();
+            query.where = lineLayer.definitionExpression || "1=1";
+            query.outStatistics = [
+              { onStatisticField: metricField, outStatisticFieldName: "minValue", statisticType: "min" },
+              { onStatisticField: metricField, outStatisticFieldName: "maxValue", statisticType: "max" }
+            ];
+            query.returnGeometry = false;
+            try {
+              const result = await lineLayer.queryFeatures(query);
+              const stats = result.features[0]?.attributes || {};
+              let min = stats.minValue ?? 0;
+              let max = stats.maxValue ?? 100;
+              if (min === max) { min = 0; max = min + 1; }
+              const sliderMin = document.getElementById("range-slider-min");
+              const sliderMax = document.getElementById("range-slider-max");
+              const minValueLabel = document.getElementById("range-min-value");
+              const maxValueLabel = document.getElementById("range-max-value");
+              sliderMin.min = min;
+              sliderMin.max = max;
+              sliderMin.value = min;
+              sliderMin.step = 0.01;
+              sliderMax.min = min;
+              sliderMax.max = max;
+              sliderMax.value = max;
+              sliderMax.step = 0.01;
+              minValueLabel.textContent = parseFloat(min).toFixed(2);
+              maxValueLabel.textContent = parseFloat(max).toFixed(2);
+            } catch (e) {
+              console.error("Error querying min/max for range filter", e);
+            }
+          }
+
+          // Update displayed values when sliders are moved
+          const rangeSliderMin = document.getElementById("range-slider-min");
+          const rangeSliderMax = document.getElementById("range-slider-max");
+          const rangeMinValue = document.getElementById("range-min-value");
+          const rangeMaxValue = document.getElementById("range-max-value");
+          rangeSliderMin.addEventListener("input", () => {
+            rangeMinValue.textContent = parseFloat(rangeSliderMin.value).toFixed(2);
+            applyRangeFilter();
+          });
+          rangeSliderMax.addEventListener("input", () => {
+            rangeMaxValue.textContent = parseFloat(rangeSliderMax.value).toFixed(2);
+            applyRangeFilter();
+          });
+
+          function applyRangeFilter() {
+            const metricField = getActiveMetricField();
+            const min = parseFloat(rangeSliderMin.value);
+            const max = parseFloat(rangeSliderMax.value);
+            if (!metricField) {
+              showNotification(view, "No metric selected for range filter.", "warning");
+              return;
+            }
+            if (min > max) {
+              showNotification(view, "Invalid range: Min value cannot be greater than Max value.", "warning");
+              return;
+            }
+            const rangeExpression = `${metricField} >= ${min} AND ${metricField} <= ${max}`;
+            layers.forEach(layer => {
+              if (shouldFilterLayer(layer)) {
+                let baseExpr = layer._globalFilterExpr || layer.definitionExpression || "";
+                baseExpr = baseExpr.replace(/\s*AND?\s*([A-Z_]+\s*[<>]=?\s*\d+(\.\d+)?\s*AND\s*[A-Z_]+\s*[<>]=?\s*\d+(\.\d+)?)/gi, "").trim();
+                baseExpr = baseExpr.replace(/(AND|OR)\s*$/, "").trim();
+                let combinedExpr = baseExpr ? `${baseExpr} AND ${rangeExpression}` : rangeExpression;
+                layer.definitionExpression = combinedExpr;
+                layer._globalFilterExpr = baseExpr;
+              }
+            });
+            showNotification(view, `Applied range filter: ${min} to ${max} for ${metricField}`, "success");
+          }
+
+          // Listen for changes in visible metric and update slider UI
+          const metricGroupLayer = view.map.allLayers.find(l => l.title === "Reliability Metrics 2025");
+          if (metricGroupLayer && metricGroupLayer.layers) {
+            metricGroupLayer.layers.forEach(sublayer => {
+              sublayer.watch("visible", updateRangeSliderUI);
+            });
+          }
+          // Initial update
+          updateRangeSliderUI();
           
         } catch (error) {
           console.error("Error setting up filter UI:", error);

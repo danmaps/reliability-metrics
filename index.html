@@ -131,8 +131,8 @@
 
 <body>
     <div id="viewDiv"></div>
+    <div id="filterDiv"></div>
 
-    
     <!-- Error display container -->
     <div id="errorContainer">
         <h3 id="errorMessage">Application Error</h3>
@@ -169,6 +169,81 @@
                         console.error("Error completing OAuth:", e);
                     }
                 });
+            }
+        });
+
+        // // Add optional range filter below the other filters
+        // const rangeFilterContainer = document.createElement("div");
+        // rangeFilterContainer.id = "rangeFilterContainer";
+        // rangeFilterContainer.style.marginTop = "15px";
+        // rangeFilterContainer.style.backgroundColor = "#333";
+        // rangeFilterContainer.style.padding = "10px";
+        // rangeFilterContainer.style.borderRadius = "4px";
+
+        // rangeFilterContainer.innerHTML = `
+        //   <h4 style="margin-top:0; color:#ffffff;">Optional Range Filter</h4>
+        //   <label for="range-slider-min">Min:</label>
+        //   <input type="range" id="range-slider-min" class="esri-input" style="width: 100%; margin-bottom: 8px;" min="0" max="100" step="1">
+        //   <label for="range-slider-max">Max:</label>
+        //   <input type="range" id="range-slider-max" class="esri-input" style="width: 100%; margin-bottom: 8px;" min="0" max="100" step="1">
+        //   <div style="display: flex; justify-content: space-between;">
+        //     <span id="range-min-value" style="color: #ffffff;">0</span>
+        //     <span id="range-max-value" style="color: #ffffff;">100</span>
+        //   </div>
+        //   <button id="apply-range-filter" class="esri-button" style="width: 100%; margin-top: 8px;">Apply Range Filter</button>
+        // `;
+
+        // const filterDiv = document.getElementById("filterDiv");
+        // if (filterDiv) {
+        //   filterDiv.appendChild(rangeFilterContainer);
+        // }
+
+        // Ensure the DOM is fully loaded before adding event listeners
+        document.addEventListener("DOMContentLoaded", () => {
+            const rangeFilterContainer = document.getElementById("rangeFilterContainer");
+            if (!rangeFilterContainer) {
+                console.error("Range filter container is missing in the DOM.");
+                return;
+            }
+
+            const rangeSliderMin = document.getElementById("range-slider-min");
+            const rangeSliderMax = document.getElementById("range-slider-max");
+            const rangeMinValue = document.getElementById("range-min-value");
+            const rangeMaxValue = document.getElementById("range-max-value");
+            const applyRangeFilterButton = document.getElementById("apply-range-filter");
+
+            if (rangeSliderMin && rangeSliderMax && rangeMinValue && rangeMaxValue && applyRangeFilterButton) {
+                rangeSliderMin.addEventListener("input", () => {
+                    rangeMinValue.textContent = rangeSliderMin.value;
+                });
+
+                rangeSliderMax.addEventListener("input", () => {
+                    rangeMaxValue.textContent = rangeSliderMax.value;
+                });
+
+                applyRangeFilterButton.addEventListener("click", () => {
+                    const min = parseFloat(rangeSliderMin.value);
+                    const max = parseFloat(rangeSliderMax.value);
+
+                    if (min > max) {
+                        console.warn("Invalid range: Min value is greater than Max value.");
+                        showNotification(view, "Invalid range: Min value cannot be greater than Max value.", "warning");
+                        return;
+                    }
+
+                    // Apply range filter to layers
+                    layers.forEach(layer => {
+                        if (shouldFilterLayer(layer)) {
+                            const rangeExpression = `${metricField} >= ${min} AND ${metricField} <= ${max}`;
+                            layer.definitionExpression = rangeExpression;
+                            console.log(`Applied range filter to layer ${layer.title}: ${rangeExpression}`);
+                        }
+                    });
+
+                    showNotification(view, `Applied range filter: ${min} to ${max}`, "success");
+                });
+            } else {
+                console.error("One or more range filter elements are missing in the DOM.");
             }
         });
     </script>
