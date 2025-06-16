@@ -32,9 +32,6 @@ require([
   Print
 ) {
 
-  // Safely determine if running in Electron or browser
-  const isElectron = window && window.process && window.process.type;
-  console.log("Running in environment:", isElectron ? "Electron" : "Browser");
 
   // Show the welcome modal on launch
   const welcomeModal = document.getElementById("welcomeModal");

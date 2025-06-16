@@ -2,58 +2,9 @@
   "name": "reliability-metrics-map",
   "version": "1.0.0",
   "description": "Reliability Metrics Map Application",
-  "main": "electron.js",
-  "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "electron-builder --win portable",
-    "dist:win": "electron-builder --win portable --publish never",
-    "postinstall": "electron-builder install-app-deps"
-  },
+  "main": "index.html",
+  "scripts": {},
   "author": "SCE",
   "license": "ISC",
-  "devDependencies": {
-    "electron": "^27.0.0",
-    "electron-builder": "^24.6.3"
-  },
-  "build": {
-    "appId": "com.sce.reliabilityapp",
-    "productName": "Reliability Metrics Map",
-    "win": {
-      "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "build/app-icon.ico",
-      "artifactName": "${productName}-${version}.${ext}",
-      "signingHashAlgorithms": null,
-      "signDlls": false
-    },
-    "forceCodeSigning": false,
-    "mac": {
-      "target": "dmg",
-      "icon": "build/icon.icns"
-    },
-    "linux": {
-      "target": "AppImage",
-      "icon": "build/icon.png"
-    },
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/**/*",
-      "electron.js",
-      "package.json"
-    ],
-    "asar": true,
-    "asarUnpack": [],
-    "electronDownload": {
-      "cache": "./electron-cache"
-    }
-  }
+  "devDependencies": {},
 }
