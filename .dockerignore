@@ -1,0 +1,11 @@
+node_modules
+.git
+.vscode
+build
+dist
+*.bat
+*.md
+package-lock.json
+.gitignore
+.dockerignore
+Dockerfile
