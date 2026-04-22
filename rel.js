@@ -108,6 +108,12 @@ require([
         });
     });
 
+  // Utility to get metric from URL
+  function getMetricFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("metric");
+  }
+
   function loadMap() {
     const webmap = new WebMap({
       portalItem: {
@@ -536,6 +542,26 @@ require([
           console.log("Widget states:", { print: printExp, layers: layerExp, legend: legendExp });
         }
       );
+
+      // After the LayerList is created and metric radio buttons are rendered:
+      setTimeout(() => {
+        const metricParam = getMetricFromUrl();
+        if (metricParam) {
+          // Try to find a radio button with value matching the metric param (case-insensitive)
+          const radios = document.querySelectorAll('input[type="radio"]');
+          let found = false;
+          radios.forEach(radio => {
+            if (radio.value && radio.value.toLowerCase() === metricParam.toLowerCase()) {
+              radio.checked = true;
+              radio.dispatchEvent(new Event('change', { bubbles: true }));
+              found = true;
+            }
+          });
+          if (!found) {
+            console.warn(`Metric parameter '${metricParam}' not found in radio buttons.`);
+          }
+        }
+      }, 500); // Delay to ensure LayerList is rendered
     }
     
     // Helper function to get the field name from layer title
@@ -838,14 +864,10 @@ require([
       
       // Ensure the filter UI is properly initialized before accessing elements
       const initializeFilterUI = () => {
-        const filterDiv = document.getElementById("filterDiv");
-        if (!filterDiv) {
-          console.error("Filter UI container not found in the DOM.");
-          return;
-        }
+        // filterDiv is the local variable — no need to find it in the document
 
         // Create the filter-layers-header element if it doesn't exist
-        let filterLayersHeader = document.getElementById("filter-layers-header");
+        let filterLayersHeader = filterDiv.querySelector("#filter-layers-header");
         if (!filterLayersHeader) {
           filterLayersHeader = document.createElement("div");
           filterLayersHeader.id = "filter-layers-header";
@@ -855,7 +877,7 @@ require([
         }
 
         // Create the filter-layers-section element if it doesn't exist
-        let filterLayersSection = document.getElementById("filter-layers-section");
+        let filterLayersSection = filterDiv.querySelector("#filter-layers-section");
         if (!filterLayersSection) {
           filterLayersSection = document.createElement("div");
           filterLayersSection.id = "filter-layers-section";
@@ -866,7 +888,7 @@ require([
 
         // Add event listener to toggle the filter layers section
         filterLayersHeader.addEventListener("click", () => {
-          const arrow = document.getElementById("filter-layers-arrow");
+          const arrow = filterDiv.querySelector("#filter-layers-arrow");
           if (filterLayersSection && arrow) {
             filterLayersSection.style.display = filterLayersSection.style.display === "none" ? "block" : "none";
             arrow.textContent = filterLayersSection.style.display === "none" ? "▼" : "▲";
@@ -882,6 +904,9 @@ require([
         try {
           console.log(`Setting up filter UI with layer "${filterLayer.title}"`);
           
+          // Helper: find elements within filterDiv (they may not be in
+          // the document yet if the Expand widget hasn't inserted them).
+          const el = (id) => filterDiv.querySelector('#' + id);
           // Find the line layer for region values
           const lineLayer = view.map.allLayers.find(layer => 
             layer.title === "Reliability_Dissolve_Lines"
@@ -897,11 +922,11 @@ require([
           };
 
           // Ensure the element exists before adding an event listener
-          const filterLayersHeader = document.getElementById("filter-layers-header");
+          const filterLayersHeader = el("filter-layers-header");
           if (filterLayersHeader) {
             filterLayersHeader.addEventListener("click", () => {
-              const section = document.getElementById("filter-layers-section");
-              const arrow = document.getElementById("filter-layers-arrow");
+              const section = el("filter-layers-section");
+              const arrow = el("filter-layers-arrow");
               if (section && arrow) {
                 section.style.display = section.style.display === "none" ? "block" : "none";
                 arrow.textContent = section.style.display === "none" ? "▼" : "▲";
@@ -913,18 +938,18 @@ require([
 
           // Populate dropdowns
           if (fields.hasRegionField && lineLayer) {
-            populateDropdown(lineLayer, "REGION", "region-select");
+            populateDropdown(lineLayer, "REGION", "region-select", filterDiv);
           } else if (fields.hasRegionField) {
-            populateDropdown(filterLayer, "REGION", "region-select");
+            populateDropdown(filterLayer, "REGION", "region-select", filterDiv);
           }
           
-          if (hasDistrictField) populateDropdown(filterLayer, "DISTRICT", "district-select");
-          if (hasCountyField) populateDropdown(filterLayer, "COUNTY", "county-select");
-          if (hasCityField) populateDropdown(filterLayer, "CITY", "city-select");
-          if (hasSubstationField) populateDropdown(filterLayer, "SUBSTATION", "substation-select");
+          if (hasDistrictField) populateDropdown(filterLayer, "DISTRICT", "district-select", filterDiv);
+          if (hasCountyField) populateDropdown(filterLayer, "COUNTY", "county-select", filterDiv);
+          if (hasCityField) populateDropdown(filterLayer, "CITY", "city-select", filterDiv);
+          if (hasSubstationField) populateDropdown(filterLayer, "SUBSTATION", "substation-select", filterDiv);
           
           // Define layerCheckboxes to reference all checkboxes in the filter UI
-          const layerCheckboxes = document.querySelectorAll('.filter-layer-checkbox');
+          const layerCheckboxes = filterDiv.querySelectorAll('.filter-layer-checkbox');
 
           // Set up event listeners for layer checkboxes
           layerCheckboxes.forEach(checkbox => {
@@ -940,7 +965,7 @@ require([
           setupFilterEventListeners(filterLayer, layers, fields);
 
           // Set up event listener for zoom to filtered button
-          const zoomToFilteredBtn = document.getElementById("zoom-to-filtered");
+          const zoomToFilteredBtn = el("zoom-to-filtered");
           if (zoomToFilteredBtn) {
             zoomToFilteredBtn.addEventListener("click", () => {
               zoomToFilteredFeatures(view, layers);
@@ -978,7 +1003,7 @@ require([
           // Helper to update slider min/max based on current metric
           async function updateRangeSliderUI() {
             const metricField = getActiveMetricField();
-            const rangeMetricLabel = document.getElementById("range-metric-label");
+            const rangeMetricLabel = el("range-metric-label");
             if (!metricField) {
               rangeMetricLabel.textContent = "No metric selected.";
               return;
@@ -1000,10 +1025,10 @@ require([
               let min = stats.minValue ?? 0;
               let max = stats.maxValue ?? 100;
               if (min === max) { min = 0; max = min + 1; }
-              const sliderMin = document.getElementById("range-slider-min");
-              const sliderMax = document.getElementById("range-slider-max");
-              const minValueLabel = document.getElementById("range-min-value");
-              const maxValueLabel = document.getElementById("range-max-value");
+              const sliderMin = el("range-slider-min");
+              const sliderMax = el("range-slider-max");
+              const minValueLabel = el("range-min-value");
+              const maxValueLabel = el("range-max-value");
               sliderMin.min = min;
               sliderMin.max = max;
               sliderMin.value = min;
@@ -1020,10 +1045,10 @@ require([
           }
 
           // Update displayed values when sliders are moved
-          const rangeSliderMin = document.getElementById("range-slider-min");
-          const rangeSliderMax = document.getElementById("range-slider-max");
-          const rangeMinValue = document.getElementById("range-min-value");
-          const rangeMaxValue = document.getElementById("range-max-value");
+          const rangeSliderMin = el("range-slider-min");
+          const rangeSliderMax = el("range-slider-max");
+          const rangeMinValue = el("range-min-value");
+          const rangeMaxValue = el("range-max-value");
           rangeSliderMin.addEventListener("input", () => {
             rangeMinValue.textContent = parseFloat(rangeSliderMin.value).toFixed(2);
             applyRangeFilter();
@@ -1431,13 +1456,13 @@ require([
     }
     
     // Populate dropdown with unique values from layer
-    async function populateDropdown(layer, fieldName, selectId) {
+    async function populateDropdown(layer, fieldName, selectId, container) {
       if (!layer || !layer.createQuery) {
         console.error(`Layer is invalid or doesn't support queries for field ${fieldName}`);
         return;
       }
       
-      const select = document.getElementById(selectId);
+      const select = container ? container.querySelector('#' + selectId) : document.getElementById(selectId);
       if (!select) {
         console.error(`Select element with id ${selectId} not found`);
         return;

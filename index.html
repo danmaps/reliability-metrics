@@ -140,65 +140,6 @@
         <button onclick="document.getElementById('errorContainer').style.display='none';">Dismiss</button>
     </div>
     
-    <script>
-        // Show errors in UI for easier debugging
-        window.addEventListener('error', function(event) {
-            console.error('Error:', event.error);
-            
-            const errorContainer = document.getElementById('errorContainer');
-            const errorMessage = document.getElementById('errorMessage');
-            const errorDetails = document.getElementById('errorDetails');
-            
-            if (errorContainer && errorMessage && errorDetails) {
-                errorMessage.textContent = event.message || 'Application Error';
-                errorDetails.textContent = event.error ? (event.error.stack || event.error.toString()) : 'No details available';
-                errorContainer.style.display = 'block';
-            }
-        });
-        
-        // Listen for OAuth callback messages from the callback page
-        window.addEventListener("message", function(event) {
-            console.log("Received message event:", event.origin);
-            if (event.data && event.data.type === "arcgis:auth:hash") {
-                console.log("Received OAuth callback with hash");
-                // Handle the OAuth callback manually
-                require(["esri/identity/IdentityManager"], function(IdentityManager) {
-                    try {
-                        IdentityManager.completeOAuth2(event.data.hash);
-                    } catch (e) {
-                        console.error("Error completing OAuth:", e);
-                    }
-                });
-            }
-        });
-
-        // // Add optional range filter below the other filters
-        // const rangeFilterContainer = document.createElement("div");
-        // rangeFilterContainer.id = "rangeFilterContainer";
-        // rangeFilterContainer.style.marginTop = "15px";
-        // rangeFilterContainer.style.backgroundColor = "#333";
-        // rangeFilterContainer.style.padding = "10px";
-        // rangeFilterContainer.style.borderRadius = "4px";
-
-        // rangeFilterContainer.innerHTML = `
-        //   <h4 style="margin-top:0; color:#ffffff;">Optional Range Filter</h4>
-        //   <label for="range-slider-min">Min:</label>
-        //   <input type="range" id="range-slider-min" class="esri-input" style="width: 100%; margin-bottom: 8px;" min="0" max="100" step="1">
-        //   <label for="range-slider-max">Max:</label>
-        //   <input type="range" id="range-slider-max" class="esri-input" style="width: 100%; margin-bottom: 8px;" min="0" max="100" step="1">
-        //   <div style="display: flex; justify-content: space-between;">
-        //     <span id="range-min-value" style="color: #ffffff;">0</span>
-        //     <span id="range-max-value" style="color: #ffffff;">100</span>
-        //   </div>
-        //   <button id="apply-range-filter" class="esri-button" style="width: 100%; margin-top: 8px;">Apply Range Filter</button>
-        // `;
-
-        // const filterDiv = document.getElementById("filterDiv");
-        // if (filterDiv) {
-        //   filterDiv.appendChild(rangeFilterContainer);
-        // }
-    </script>
-    
     <script src="rel.js"></script>
     <script>document.write('<script src="//' + location.hostname + ':8000/gisapps-header.js"><\/script>')</script>
 </body>
